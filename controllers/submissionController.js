@@ -1,0 +1,97 @@
+import Submission from '../models/Submission.js'
+
+// Student: get my submissions
+export async function getMySubmissions(req, res) {
+  try {
+    const submissions = await Submission.find({
+      studentId: req.user.id,
+      status: { $ne: 'draft' },
+    }).sort({ createdAt: -1 })
+    res.json(submissions)
+  } catch (error) {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
+  }
+}
+
+// Admin: get all submissions
+export async function getAllSubmissions(req, res) {
+  try {
+    const { status, level } = req.query
+    const filter = { status: { $ne: 'draft' } }
+    if (status) filter.status = status
+    if (level) filter.level = level
+
+    // teacher ดูได้เฉพาะระดับที่จัดการ
+    if (req.user.role === 'teacher' && req.user.managedLevels?.length > 0) {
+      filter.level = { $in: req.user.managedLevels }
+    }
+
+    const submissions = await Submission.find(filter)
+      .populate('studentId', 'studentId name level classroom')
+      .populate('gradedBy', 'name email')
+      .sort({ createdAt: -1 })
+    res.json(submissions)
+  } catch (error) {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
+  }
+}
+
+// Admin: get single submission
+export async function getSubmission(req, res) {
+  try {
+    const submission = await Submission.findById(req.params.id)
+      .populate('studentId', 'studentId name level classroom')
+      .populate('gradedBy', 'name email')
+    if (!submission) return res.status(404).json({ message: 'ไม่พบข้อสอบ' })
+
+    // teacher ตรวจสิทธิ์ระดับ
+    if (req.user.role === 'teacher') {
+      if (!req.user.managedLevels?.includes(submission.level)) {
+        return res.status(403).json({ message: 'ไม่มีสิทธิ์เข้าถึงระดับนี้' })
+      }
+    }
+
+    res.json(submission)
+  } catch (error) {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
+  }
+}
+
+function applyGradedAnswers(submissionAnswers, gradedAnswers) {
+  for (const graded of gradedAnswers) {
+    const ans = submissionAnswers.find((a) => a.questionId.toString() === graded.questionId)
+    if (!ans) continue
+    if (graded.scoreGiven !== undefined) ans.scoreGiven = graded.scoreGiven
+    if (graded.teacherComment !== undefined) ans.teacherComment = graded.teacherComment
+  }
+}
+
+// Admin/Teacher: grade submission
+export async function gradeSubmission(req, res) {
+  try {
+    const submission = await Submission.findById(req.params.id)
+    if (!submission) return res.status(404).json({ message: 'ไม่พบข้อสอบ' })
+
+    if (req.user.role === 'teacher' && !req.user.managedLevels?.includes(submission.level)) {
+      return res.status(403).json({ message: 'ไม่มีสิทธิ์ตรวจข้อสอบระดับนี้' })
+    }
+
+    const { answers, overallFeedback, maxScore } = req.body
+
+    if (Array.isArray(answers)) {
+      applyGradedAnswers(submission.answers, answers)
+    }
+
+    submission.totalScore = submission.answers.reduce((sum, a) => sum + (a.scoreGiven || 0), 0)
+    if (maxScore !== undefined) submission.maxScore = maxScore
+    if (overallFeedback !== undefined) submission.overallFeedback = overallFeedback
+    submission.status = 'graded'
+    submission.gradedBy = req.user.id
+    submission.gradedAt = new Date()
+    await submission.save()
+
+    res.json({ message: 'ตรวจข้อสอบเรียบร้อย', submission })
+  } catch (error) {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
+  }
+}
