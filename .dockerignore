@@ -1,0 +1,7 @@
+node_modules
+.env
+.env.*
+!.env.example
+.git
+*.md
+test-r2.js
