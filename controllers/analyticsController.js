@@ -51,7 +51,7 @@ export async function getClassroomScores(req, res) {
     }
 
     const studentFilter = { level }
-    if (classroom) studentFilter.classroom = classroom
+    if (classroom) studentFilter.classroom = Number(classroom)
 
     const students = await Student.find(studentFilter).select('-password -refreshTokenHash').sort({ studentId: 1 })
     const studentIds = students.map((s) => s._id)
@@ -97,7 +97,7 @@ export async function exportClassroomScores(req, res) {
     }
 
     const studentFilter = { level }
-    if (classroom) studentFilter.classroom = classroom
+    if (classroom) studentFilter.classroom = Number(classroom)
 
     const students = await Student.find(studentFilter).select('-password -refreshTokenHash').sort({ studentId: 1 })
     const studentIds = students.map((s) => s._id)
@@ -125,7 +125,7 @@ export async function exportClassroomScores(req, res) {
         s.studentId,
         s.name,
         s.level,
-        s.classroom || '-',
+        s.classroom ? `${s.level.replace('m', '')}/${s.classroom}` : '-',
         subs.length,
         first ? `${first.totalScore}/${first.maxScore}` : '-',
         last ? `${last.totalScore}/${last.maxScore}` : '-',
@@ -134,7 +134,7 @@ export async function exportClassroomScores(req, res) {
     })
 
     const csv = rows.map((r) => r.map((v) => `"${v}"`).join(',')).join('\n')
-    const classroomSuffix = classroom ? `-${classroom.replace('/', '-')}` : ''
+    const classroomSuffix = classroom ? `-room${classroom}` : ''
     const filename = `classroom-scores-${level}${classroomSuffix}.csv`
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')

@@ -6,7 +6,7 @@ const studentSchema = new mongoose.Schema({
   password: { type: String, required: true },
   name: { type: String, required: true },
   level: { type: String, enum: ['m1', 'm2', 'm3'], required: true },
-  classroom: { type: String, default: '' },
+  classroom: { type: Number, default: null },
   refreshTokenHash: { type: String, default: null },
 }, { timestamps: true })
 

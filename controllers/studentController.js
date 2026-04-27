@@ -5,7 +5,7 @@ export async function getStudents(req, res) {
     const { level, classroom } = req.query
     const filter = {}
     if (level) filter.level = level
-    if (classroom) filter.classroom = classroom
+    if (classroom) filter.classroom = Number(classroom)
 
     // teacher ดูได้เฉพาะระดับที่จัดการ
     if (req.user.role === 'teacher' && req.user.managedLevels?.length > 0) {
@@ -29,7 +29,7 @@ export async function createStudent(req, res) {
     if (existing) {
       return res.status(409).json({ message: 'รหัสนักเรียนนี้มีอยู่แล้ว' })
     }
-    const student = await Student.create({ studentId, password, name, level, classroom: classroom || '' })
+    const student = await Student.create({ studentId, password, name, level, classroom: classroom ? Number(classroom) : null })
     res.status(201).json({ _id: student._id, studentId: student.studentId, name: student.name, level: student.level, classroom: student.classroom })
   } catch (error) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
@@ -45,7 +45,7 @@ export async function updateStudent(req, res) {
     if (name) student.name = name
     if (level) student.level = level
     if (password) student.password = password
-    if (classroom !== undefined) student.classroom = classroom
+    if (classroom !== undefined) student.classroom = classroom ? Number(classroom) : null
     await student.save()
 
     res.json({ _id: student._id, studentId: student.studentId, name: student.name, level: student.level, classroom: student.classroom })
