@@ -102,6 +102,8 @@ export async function exportClassroomScores(req, res) {
     const students = await Student.find(studentFilter).select('-password -refreshTokenHash').sort({ studentId: 1 })
     const studentIds = students.map((s) => s._id)
 
+    const levelMap = { m1: 'ม.1', m2: 'ม.2', m3: 'ม.3' }
+
     const submissions = await Submission.find({
       studentId: { $in: studentIds },
       status: 'graded',
@@ -114,23 +116,44 @@ export async function exportClassroomScores(req, res) {
       scoreMap[id].push(sub)
     }
 
-    const rows = [['ลำดับ', 'รหัสนักเรียน', 'ชื่อ-นามสกุล', 'ระดับ', 'ห้อง', 'จำนวนครั้งที่สอบ', 'คะแนนครั้งแรก', 'คะแนนล่าสุด', 'วันที่สอบล่าสุด']]
+    // หา จำนวนข้อสูงสุดจาก submissions
+    const numQuestions = submissions.reduce((max, sub) => Math.max(max, sub.answers?.length || 0), 0) || 3
+
+    // สร้าง header: 1.1 1.2 1.3 1.4 ข้อ1 | 2.1 ... | รวม
+    const header = ['ลำดับ', 'รหัสนักเรียน', 'ชื่อ-นามสกุล', 'ระดับ', 'ห้อง']
+    for (let q = 1; q <= numQuestions; q++) {
+      header.push(`${q}.1`, `${q}.2`, `${q}.3`, `${q}.4`, `${q}`)
+    }
+    header.push('รวม')
+
+    const rows = [header]
 
     students.forEach((s, i) => {
       const subs = scoreMap[s._id.toString()] || []
-      const first = subs[0]
       const last = subs[subs.length - 1]
-      rows.push([
+      const answers = last?.answers || []
+
+      const row = [
         i + 1,
         s.studentId,
         s.name,
-        s.level,
+        levelMap[s.level] || s.level,
         s.classroom ? `${s.level.replace('m', '')}/${s.classroom}` : '-',
-        subs.length,
-        first ? `${first.totalScore}/${first.maxScore}` : '-',
-        last ? `${last.totalScore}/${last.maxScore}` : '-',
-        last ? new Date(last.createdAt).toLocaleDateString('th-TH') : '-',
-      ])
+      ]
+
+      for (let q = 0; q < numQuestions; q++) {
+        const ans = answers[q]
+        row.push(
+          ans?.step1Score ?? '-',
+          ans?.step2Score ?? '-',
+          ans?.step3Score ?? '-',
+          ans?.step4Score ?? '-',
+          ans?.scoreGiven ?? '-',
+        )
+      }
+
+      row.push(last?.totalScore ?? '-')
+      rows.push(row)
     })
 
     const csv = rows.map((r) => r.map((v) => `"${v}"`).join(',')).join('\n')

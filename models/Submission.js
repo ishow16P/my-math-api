@@ -17,6 +17,10 @@ const answerSchema = new mongoose.Schema({
   step4: { type: stepSchema, default: () => ({}) },
 
   scoreGiven: { type: Number, default: 0 },
+  step1Score: { type: Number, default: 0 },
+  step2Score: { type: Number, default: 0 },
+  step3Score: { type: Number, default: 0 },
+  step4Score: { type: Number, default: 0 },
   teacherComment: { type: String, default: '' },
 }, { _id: false })
 

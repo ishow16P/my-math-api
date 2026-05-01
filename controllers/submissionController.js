@@ -62,6 +62,10 @@ function applyGradedAnswers(submissionAnswers, gradedAnswers) {
     const ans = submissionAnswers.find((a) => a.questionId.toString() === graded.questionId)
     if (!ans) continue
     if (graded.scoreGiven !== undefined) ans.scoreGiven = graded.scoreGiven
+    if (graded.step1Score !== undefined) ans.step1Score = graded.step1Score
+    if (graded.step2Score !== undefined) ans.step2Score = graded.step2Score
+    if (graded.step3Score !== undefined) ans.step3Score = graded.step3Score
+    if (graded.step4Score !== undefined) ans.step4Score = graded.step4Score
     if (graded.teacherComment !== undefined) ans.teacherComment = graded.teacherComment
   }
 }
