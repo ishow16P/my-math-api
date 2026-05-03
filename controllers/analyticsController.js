@@ -29,6 +29,13 @@ export async function getStudentProgress(req, res) {
       maxScore: s.maxScore,
       createdAt: s.createdAt,
       gradedAt: s.gradedAt,
+      answers: s.answers.map((a) => ({
+        scoreGiven: a.scoreGiven,
+        step1Score: a.step1Score,
+        step2Score: a.step2Score,
+        step3Score: a.step3Score,
+        step4Score: a.step4Score,
+      })),
     }))
 
     res.json({ student, first, latest, history })
