@@ -17,3 +17,15 @@ export async function uploadCanvas(req, res) {
     res.status(500).json({ message: 'อัปโหลดไม่สำเร็จ', error: error.message })
   }
 }
+
+export async function uploadQuestionImage(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'ไม่พบไฟล์' })
+    }
+    const url = await uploadToR2(req.file.buffer, req.file.mimetype, 'questions')
+    res.json({ url })
+  } catch (error) {
+    res.status(500).json({ message: 'อัปโหลดไม่สำเร็จ', error: error.message })
+  }
+}
