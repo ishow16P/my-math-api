@@ -56,9 +56,9 @@ export async function updateQuestion(req, res) {
 
 export async function deleteQuestion(req, res) {
   try {
-    const question = await Question.findByIdAndUpdate(req.params.id, { isActive: false }, { new: true })
+    const question = await Question.findByIdAndDelete(req.params.id)
     if (!question) return res.status(404).json({ message: 'ไม่พบข้อสอบ' })
-    res.json({ message: 'ซ่อนข้อสอบแล้ว' })
+    res.json({ message: 'ลบข้อสอบแล้ว' })
   } catch (error) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
   }

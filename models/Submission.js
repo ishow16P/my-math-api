@@ -21,6 +21,10 @@ const answerSchema = new mongoose.Schema({
   step2Score: { type: Number, default: 0 },
   step3Score: { type: Number, default: 0 },
   step4Score: { type: Number, default: 0 },
+  step1Feedback: { type: String, default: '' },
+  step2Feedback: { type: String, default: '' },
+  step3Feedback: { type: String, default: '' },
+  step4Feedback: { type: String, default: '' },
   teacherComment: { type: String, default: '' },
 }, { _id: false })
 

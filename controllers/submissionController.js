@@ -1,4 +1,5 @@
 import Submission from '../models/Submission.js'
+import Question from '../models/Question.js'
 
 // Student: get my submissions
 export async function getMySubmissions(req, res) {
@@ -51,7 +52,15 @@ export async function getSubmission(req, res) {
       }
     }
 
-    res.json(submission)
+    const result = submission.toObject()
+    const questionIds = result.answers.map((a) => a.questionId)
+    const questions = await Question.find({ _id: { $in: questionIds } }).select('quickFeedbacks')
+    const qMap = Object.fromEntries(questions.map((q) => [q._id.toString(), q.quickFeedbacks || []]))
+    result.answers = result.answers.map((a) => ({
+      ...a,
+      quickFeedbacks: qMap[a.questionId.toString()] || [],
+    }))
+    res.json(result)
   } catch (error) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
   }
@@ -66,6 +75,10 @@ function applyGradedAnswers(submissionAnswers, gradedAnswers) {
     if (graded.step2Score !== undefined) ans.step2Score = graded.step2Score
     if (graded.step3Score !== undefined) ans.step3Score = graded.step3Score
     if (graded.step4Score !== undefined) ans.step4Score = graded.step4Score
+    if (graded.step1Feedback !== undefined) ans.step1Feedback = graded.step1Feedback
+    if (graded.step2Feedback !== undefined) ans.step2Feedback = graded.step2Feedback
+    if (graded.step3Feedback !== undefined) ans.step3Feedback = graded.step3Feedback
+    if (graded.step4Feedback !== undefined) ans.step4Feedback = graded.step4Feedback
     if (graded.teacherComment !== undefined) ans.teacherComment = graded.teacherComment
   }
 }
