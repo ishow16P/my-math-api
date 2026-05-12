@@ -1,19 +1,42 @@
 import Student from '../models/Student.js'
+import { parsePagination, escapeRegex } from '../services/pagination.js'
 
 export async function getStudents(req, res) {
   try {
-    const { level, classroom } = req.query
+    const { level, classroom, page, search } = req.query
     const filter = {}
     if (level) filter.level = level
     if (classroom) filter.classroom = Number(classroom)
 
     // teacher ดูได้เฉพาะระดับที่จัดการ
     if (req.user.role === 'teacher' && req.user.managedLevels?.length > 0) {
-      filter.level = { $in: req.user.managedLevels }
+      if (level && req.user.managedLevels.includes(level)) {
+        filter.level = level
+      } else {
+        filter.level = { $in: req.user.managedLevels }
+      }
     }
 
-    const students = await Student.find(filter).select('-password -refreshTokenHash').sort({ createdAt: -1 })
-    res.json(students)
+    if (search) {
+      const escaped = escapeRegex(search)
+      filter.$or = [
+        { studentId: { $regex: escaped, $options: 'i' } },
+        { name: { $regex: escaped, $options: 'i' } },
+      ]
+    }
+
+    // ไม่ส่ง page → return array (backward compat กับหน้าอื่น เช่น progress)
+    if (!page) {
+      const students = await Student.find(filter).select('-password -refreshTokenHash').sort({ createdAt: -1 })
+      return res.json(students)
+    }
+
+    const { pageNum, limitNum, skip } = parsePagination(req.query)
+    const [total, data] = await Promise.all([
+      Student.countDocuments(filter),
+      Student.find(filter).select('-password -refreshTokenHash').sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+    ])
+    res.json({ data, pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) } })
   } catch (error) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
   }

@@ -1,5 +1,7 @@
 import Submission from '../models/Submission.js'
 import Question from '../models/Question.js'
+import Student from '../models/Student.js'
+import { parsePagination, escapeRegex } from '../services/pagination.js'
 
 // Student: get my submissions
 export async function getMySubmissions(req, res) {
@@ -17,21 +19,51 @@ export async function getMySubmissions(req, res) {
 // Admin: get all submissions
 export async function getAllSubmissions(req, res) {
   try {
-    const { status, level } = req.query
+    const { status, level, page, search } = req.query
     const filter = { status: { $ne: 'draft' } }
     if (status) filter.status = status
     if (level) filter.level = level
 
     // teacher ดูได้เฉพาะระดับที่จัดการ
     if (req.user.role === 'teacher' && req.user.managedLevels?.length > 0) {
-      filter.level = { $in: req.user.managedLevels }
+      if (level && req.user.managedLevels.includes(level)) {
+        filter.level = level
+      } else {
+        filter.level = { $in: req.user.managedLevels }
+      }
     }
 
-    const submissions = await Submission.find(filter)
-      .populate('studentId', 'studentId name level classroom')
-      .populate('gradedBy', 'name email')
-      .sort({ createdAt: -1 })
-    res.json(submissions)
+    if (search) {
+      const escaped = escapeRegex(search)
+      const matchingStudents = await Student.find({
+        $or: [
+          { studentId: { $regex: escaped, $options: 'i' } },
+          { name: { $regex: escaped, $options: 'i' } },
+        ],
+      }).select('_id').limit(500)
+      filter.studentId = { $in: matchingStudents.map((s) => s._id) }
+    }
+
+    // ไม่ส่ง page → return array (backward compat กับ dashboard)
+    if (!page) {
+      const submissions = await Submission.find(filter)
+        .populate('studentId', 'studentId name level classroom')
+        .populate('gradedBy', 'name email')
+        .sort({ createdAt: -1 })
+      return res.json(submissions)
+    }
+
+    const { pageNum, limitNum, skip } = parsePagination(req.query)
+    const [total, data] = await Promise.all([
+      Submission.countDocuments(filter),
+      Submission.find(filter)
+        .populate('studentId', 'studentId name level classroom')
+        .populate('gradedBy', 'name email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum),
+    ])
+    res.json({ data, pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) } })
   } catch (error) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
   }

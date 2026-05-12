@@ -1,8 +1,9 @@
 import Question from '../models/Question.js'
+import { parsePagination } from '../services/pagination.js'
 
 export async function getQuestions(req, res) {
   try {
-    const { level, active } = req.query
+    const { level, active, page } = req.query
     const filter = {}
     if (level) filter.level = level
     if (active !== undefined) filter.isActive = active === 'true'
@@ -11,15 +12,27 @@ export async function getQuestions(req, res) {
     if (req.user.role === 'teacher' && req.user.managedLevels?.length > 0) {
       if (filter.level) {
         if (!req.user.managedLevels.includes(filter.level)) {
-          return res.json([])
+          if (!page) return res.json([])
+          const { limitNum } = parsePagination(req.query)
+          return res.json({ data: [], pagination: { page: 1, limit: limitNum, total: 0, totalPages: 0 } })
         }
       } else {
         filter.level = { $in: req.user.managedLevels }
       }
     }
 
-    const questions = await Question.find(filter).sort({ createdAt: -1 })
-    res.json(questions)
+    // ไม่ส่ง page → return array (backward compat)
+    if (!page) {
+      const questions = await Question.find(filter).sort({ createdAt: -1 })
+      return res.json(questions)
+    }
+
+    const { pageNum, limitNum, skip } = parsePagination(req.query)
+    const [total, data] = await Promise.all([
+      Question.countDocuments(filter),
+      Question.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+    ])
+    res.json({ data, pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) } })
   } catch (error) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
   }
