@@ -86,11 +86,11 @@ export async function getSubmission(req, res) {
 
     const result = submission.toObject()
     const questionIds = result.answers.map((a) => a.questionId)
-    const questions = await Question.find({ _id: { $in: questionIds } }).select('quickFeedbacks')
-    const qMap = Object.fromEntries(questions.map((q) => [q._id.toString(), q.quickFeedbacks || []]))
+    const questions = await Question.find({ _id: { $in: questionIds } }).select('stepFeedbacks')
+    const qMap = Object.fromEntries(questions.map((q) => [q._id.toString(), q.stepFeedbacks || {}]))
     result.answers = result.answers.map((a) => ({
       ...a,
-      quickFeedbacks: qMap[a.questionId.toString()] || [],
+      stepFeedbacks: qMap[a.questionId.toString()] || {},
     }))
     res.json(result)
   } catch (error) {

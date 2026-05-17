@@ -48,9 +48,19 @@ export async function getQuestion(req, res) {
   }
 }
 
+function sanitizeStepFeedbacks(raw) {
+  const result = {}
+  for (const step of ['step1', 'step2', 'step3', 'step4']) {
+    const arr = raw?.[step]
+    result[step] = Array.isArray(arr) ? arr.filter(s => typeof s === 'string' && s.trim()) : []
+  }
+  return result
+}
+
 export async function createQuestion(req, res) {
   try {
-    const question = await Question.create(req.body)
+    const { quickFeedbacks, stepFeedbacks, ...rest } = req.body
+    const question = await Question.create({ ...rest, stepFeedbacks: sanitizeStepFeedbacks(stepFeedbacks) })
     res.status(201).json(question)
   } catch (error) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
@@ -59,7 +69,12 @@ export async function createQuestion(req, res) {
 
 export async function updateQuestion(req, res) {
   try {
-    const question = await Question.findByIdAndUpdate(req.params.id, req.body, { new: true })
+    const { quickFeedbacks, stepFeedbacks, ...rest } = req.body
+    const question = await Question.findByIdAndUpdate(
+      req.params.id,
+      { ...rest, stepFeedbacks: sanitizeStepFeedbacks(stepFeedbacks) },
+      { new: true }
+    )
     if (!question) return res.status(404).json({ message: 'ไม่พบข้อสอบ' })
     res.json(question)
   } catch (error) {

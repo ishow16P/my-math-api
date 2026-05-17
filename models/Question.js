@@ -7,7 +7,12 @@ const questionSchema = new mongoose.Schema({
   referenceSolution: { type: String },
   answer: { type: String },
   isActive: { type: Boolean, default: true },
-  quickFeedbacks: [{ type: String }],
+  stepFeedbacks: {
+    step1: [{ type: String }],
+    step2: [{ type: String }],
+    step3: [{ type: String }],
+    step4: [{ type: String }],
+  },
 }, { timestamps: true })
 
 export default mongoose.model('Question', questionSchema)
