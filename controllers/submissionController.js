@@ -19,10 +19,11 @@ export async function getMySubmissions(req, res) {
 // Admin: get all submissions
 export async function getAllSubmissions(req, res) {
   try {
-    const { status, level, page, search } = req.query
+    const { status, level, page, search, examType } = req.query
     const filter = { status: { $ne: 'draft' } }
     if (status) filter.status = status
     if (level) filter.level = level
+    if (examType) filter.examType = examType
 
     // teacher ดูได้เฉพาะระดับที่จัดการ
     if (req.user.role === 'teacher' && req.user.managedLevels?.length > 0) {
@@ -140,6 +141,18 @@ export async function gradeSubmission(req, res) {
     await submission.save()
 
     res.json({ message: 'ตรวจข้อสอบเรียบร้อย', submission })
+  } catch (error) {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
+  }
+}
+
+// Admin: delete submission
+export async function deleteSubmission(req, res) {
+  try {
+    const submission = await Submission.findById(req.params.id)
+    if (!submission) return res.status(404).json({ message: 'ไม่พบข้อมูลการส่ง' })
+    await submission.deleteOne()
+    res.json({ message: 'ลบข้อมูลการส่งเรียบร้อย' })
   } catch (error) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
   }

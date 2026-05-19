@@ -9,7 +9,15 @@ export async function getOpenSessions(req, res) {
     const student = await Student.findById(req.user.id)
     if (!student) return res.status(404).json({ message: 'ไม่พบข้อมูลนักเรียน' })
 
-    const config = await ExamConfig.findOne({ level: student.level })
+    const [config, doneSubmissions] = await Promise.all([
+      ExamConfig.findOne({ level: student.level }),
+      Submission.find({
+        studentId: req.user.id,
+        status: { $in: ['submitted', 'graded'] },
+      }).select('examType'),
+    ])
+
+    const doneTypes = new Set(doneSubmissions.map((s) => s.examType))
 
     const sessions = EXAM_TYPES.map((type) => ({
       type,
@@ -17,6 +25,7 @@ export async function getOpenSessions(req, res) {
       questionCount: EXAM_SESSION_CONFIG[type].questionCount,
       duration: EXAM_SESSION_CONFIG[type].duration,
       isOpen: config?.sessions[type]?.isOpen ?? false,
+      isDone: doneTypes.has(type),
     }))
 
     res.json({ sessions })
@@ -46,6 +55,17 @@ export async function startExam(req, res) {
     const config = await ExamConfig.findOne({ level })
     if (!config || !config.sessions[examType]?.isOpen) {
       return res.status(403).json({ message: 'ยังไม่เปิดให้ทำแบบทดสอบนี้' })
+    }
+
+    // ตรวจว่าทำแล้วหรือยัง
+    const alreadyDone = await Submission.findOne({
+      studentId: req.user.id,
+      level,
+      examType,
+      status: { $in: ['submitted', 'graded'] },
+    })
+    if (alreadyDone) {
+      return res.status(403).json({ message: 'คุณทำแบบทดสอบนี้ไปแล้ว' })
     }
 
     const sessionMeta = EXAM_SESSION_CONFIG[examType]

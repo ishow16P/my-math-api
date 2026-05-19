@@ -72,7 +72,14 @@ export async function getClassroomScores(req, res) {
     for (const sub of submissions) {
       const id = sub.studentId.toString()
       if (!scoreMap[id]) scoreMap[id] = []
-      scoreMap[id].push({ _id: sub._id, totalScore: sub.totalScore, maxScore: sub.maxScore, createdAt: sub.createdAt })
+      scoreMap[id].push({
+        _id: sub._id,
+        examType: sub.examType,
+        totalScore: sub.totalScore,
+        maxScore: sub.maxScore,
+        createdAt: sub.createdAt,
+        answerScores: (sub.answers || []).map((a) => a.scoreGiven ?? null),
+      })
     }
 
     const result = students.map((s) => ({
