@@ -10,6 +10,7 @@ import studentRoutes from './routes/students.js'
 import teacherRoutes from './routes/teachers.js'
 import analyticsRoutes from './routes/analytics.js'
 import uploadRoutes from './routes/upload.js'
+import examConfigRoutes from './routes/examConfig.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -29,6 +30,7 @@ app.use('/api/students', studentRoutes)
 app.use('/api/teachers', teacherRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/upload', express.json({ limit: '10mb' }), uploadRoutes)
+app.use('/api/exam-config', examConfigRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

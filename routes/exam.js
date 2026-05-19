@@ -1,9 +1,10 @@
 import { Router } from 'express'
 import { authStudent } from '../middleware/auth.js'
-import { startExam, saveDraft, submitExam, forceSubmit } from '../controllers/examController.js'
+import { getOpenSessions, startExam, saveDraft, submitExam, forceSubmit } from '../controllers/examController.js'
 
 const router = Router()
 
+router.get('/sessions', authStudent, getOpenSessions)
 router.post('/start', authStudent, startExam)
 router.put('/:id/draft', authStudent, saveDraft)
 router.post('/:id/submit', authStudent, submitExam)

@@ -1,34 +1,95 @@
 import Question from '../models/Question.js'
 import Submission from '../models/Submission.js'
 import Student from '../models/Student.js'
+import ExamConfig from '../models/ExamConfig.js'
+import { EXAM_SESSION_CONFIG, EXAM_TYPES } from '../constants/examSessions.js'
+
+export async function getOpenSessions(req, res) {
+  try {
+    const student = await Student.findById(req.user.id)
+    if (!student) return res.status(404).json({ message: 'ไม่พบข้อมูลนักเรียน' })
+
+    const config = await ExamConfig.findOne({ level: student.level })
+
+    const sessions = EXAM_TYPES.map((type) => ({
+      type,
+      label: EXAM_SESSION_CONFIG[type].label,
+      questionCount: EXAM_SESSION_CONFIG[type].questionCount,
+      duration: EXAM_SESSION_CONFIG[type].duration,
+      isOpen: config?.sessions[type]?.isOpen ?? false,
+    }))
+
+    res.json({ sessions })
+  } catch (error) {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
+  }
+}
 
 export async function startExam(req, res) {
   try {
-    const { level } = req.body
+    const { level, examType } = req.body
+
     if (!level || !['m1', 'm2', 'm3'].includes(level)) {
       return res.status(400).json({ message: 'กรุณาเลือกระดับชั้น' })
     }
+    if (!examType || !EXAM_TYPES.includes(examType)) {
+      return res.status(400).json({ message: 'ประเภทการสอบไม่ถูกต้อง' })
+    }
 
-    // ตรวจสอบว่านักเรียนทำได้เฉพาะระดับของตนเอง
     const student = await Student.findById(req.user.id)
     if (!student) return res.status(404).json({ message: 'ไม่พบข้อมูลนักเรียน' })
     if (student.level !== level) {
       return res.status(403).json({ message: 'ไม่สามารถทำข้อสอบระดับอื่นได้' })
     }
 
-    // สุ่ม 3 ข้อจากระดับนั้น
-    const questions = await Question.aggregate([
-      { $match: { level, isActive: true } },
-      { $sample: { size: 3 } },
-    ])
+    // ตรวจ config ว่า session นี้เปิดอยู่ไหม
+    const config = await ExamConfig.findOne({ level })
+    if (!config || !config.sessions[examType]?.isOpen) {
+      return res.status(403).json({ message: 'ยังไม่เปิดให้ทำแบบทดสอบนี้' })
+    }
+
+    const sessionMeta = EXAM_SESSION_CONFIG[examType]
+    let questions = []
+
+    if (examType === 'pre_test') {
+      // ใช้ข้อที่ admin กำหนดไว้
+      if (!config.prePostQuestionIds?.length) {
+        return res.status(404).json({ message: 'ยังไม่มีข้อสอบสำหรับรอบนี้ กรุณาติดต่อครู' })
+      }
+      questions = await Question.find({
+        _id: { $in: config.prePostQuestionIds },
+        isActive: true,
+      })
+    } else if (examType === 'post_test') {
+      // ใช้ข้อเดียวกับ pre_test เลย ไม่สุ่ม
+      if (!config.prePostQuestionIds?.length) {
+        return res.status(404).json({ message: 'ยังไม่มีข้อสอบสำหรับรอบนี้ กรุณาติดต่อครู' })
+      }
+      questions = await Question.find({
+        _id: { $in: config.prePostQuestionIds },
+        isActive: true,
+      })
+    } else {
+      // in_class_1/2/3 — ใช้ข้อที่ admin กำหนด ถ้ายังไม่กำหนดจึงสุ่ม
+      const assignedId = config.sessions[examType]?.questionId
+      if (assignedId) {
+        questions = await Question.find({ _id: assignedId, isActive: true })
+      } else {
+        questions = await Question.aggregate([
+          { $match: { level, isActive: true, pool: { $in: ['in_class', 'any'] } } },
+          { $sample: { size: sessionMeta.questionCount } },
+        ])
+      }
+    }
 
     if (questions.length === 0) {
-      return res.status(404).json({ message: 'ไม่พบข้อสอบในระดับนี้' })
+      return res.status(404).json({ message: 'ไม่พบข้อสอบในรอบนี้' })
     }
 
     const submission = await Submission.create({
       studentId: req.user.id,
       level,
+      examType,
       status: 'draft',
       maxScore: questions.length,
       answers: questions.map((q) => ({
@@ -44,7 +105,9 @@ export async function startExam(req, res) {
 
     res.json({
       submissionId: submission._id,
-      duration: 3600,
+      examType,
+      examLabel: sessionMeta.label,
+      duration: sessionMeta.duration,
       questions: questions.map((q) => ({
         _id: q._id,
         problemText: q.problemText,
@@ -95,6 +158,7 @@ export async function submitExam(req, res) {
       submission: {
         _id: submission._id,
         level: submission.level,
+        examType: submission.examType,
         status: submission.status,
       },
     })

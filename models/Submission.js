@@ -31,6 +31,11 @@ const answerSchema = new mongoose.Schema({
 const submissionSchema = new mongoose.Schema({
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
   level: { type: String, enum: ['m1', 'm2', 'm3'], required: true },
+  examType: {
+    type: String,
+    enum: ['pre_test', 'in_class_1', 'in_class_2', 'in_class_3', 'post_test'],
+    required: true,
+  },
   status: { type: String, enum: ['draft', 'submitted', 'graded'], default: 'draft' },
   totalScore: { type: Number, default: 0 },
   maxScore: { type: Number, default: 0 },

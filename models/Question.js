@@ -7,6 +7,7 @@ const questionSchema = new mongoose.Schema({
   referenceSolution: { type: String },
   answer: { type: String },
   isActive: { type: Boolean, default: true },
+  pool: { type: String, enum: ['pre_post', 'in_class', 'any'], default: 'any' },
   stepFeedbacks: {
     step1: [{ type: String }],
     step2: [{ type: String }],

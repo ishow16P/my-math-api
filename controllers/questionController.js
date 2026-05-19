@@ -3,10 +3,11 @@ import { parsePagination } from '../services/pagination.js'
 
 export async function getQuestions(req, res) {
   try {
-    const { level, active, page } = req.query
+    const { level, active, page, pool } = req.query
     const filter = {}
     if (level) filter.level = level
     if (active !== undefined) filter.isActive = active === 'true'
+    if (pool) filter.pool = pool
 
     // teacher เห็นเฉพาะระดับที่จัดการ
     if (req.user.role === 'teacher' && req.user.managedLevels?.length > 0) {
