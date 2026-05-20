@@ -87,12 +87,17 @@ export async function getSubmission(req, res) {
 
     const result = submission.toObject()
     const questionIds = result.answers.map((a) => a.questionId)
-    const questions = await Question.find({ _id: { $in: questionIds } }).select('stepFeedbacks')
-    const qMap = Object.fromEntries(questions.map((q) => [q._id.toString(), q.stepFeedbacks || {}]))
-    result.answers = result.answers.map((a) => ({
-      ...a,
-      stepFeedbacks: qMap[a.questionId.toString()] || {},
-    }))
+    const questions = await Question.find({ _id: { $in: questionIds } }).select('stepFeedbacks referenceSolution answer')
+    const qMap = Object.fromEntries(questions.map((q) => [q._id.toString(), q]))
+    result.answers = result.answers.map((a) => {
+      const q = qMap[a.questionId.toString()] || {}
+      return {
+        ...a,
+        stepFeedbacks: q.stepFeedbacks || {},
+        referenceSolution: q.referenceSolution || '',
+        answer: q.answer || '',
+      }
+    })
     res.json(result)
   } catch (error) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })

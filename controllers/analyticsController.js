@@ -25,6 +25,7 @@ export async function getStudentProgress(req, res) {
     const history = submissions.map((s) => ({
       _id: s._id,
       level: s.level,
+      examType: s.examType,
       totalScore: s.totalScore,
       maxScore: s.maxScore,
       createdAt: s.createdAt,
