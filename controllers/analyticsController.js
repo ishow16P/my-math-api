@@ -64,10 +64,10 @@ export async function getClassroomScores(req, res) {
     const students = await Student.find(studentFilter).select('-password -refreshTokenHash').sort({ studentId: 1 })
     const studentIds = students.map((s) => s._id)
 
-    const submissions = await Submission.find({
-      studentId: { $in: studentIds },
-      status: 'graded',
-    }).sort({ createdAt: 1 })
+    const subFilter = { studentId: { $in: studentIds }, status: 'graded' }
+    if (req.query.examType) subFilter.examType = req.query.examType
+
+    const submissions = await Submission.find(subFilter).sort({ createdAt: 1 })
 
     const scoreMap = {}
     for (const sub of submissions) {
@@ -79,7 +79,13 @@ export async function getClassroomScores(req, res) {
         totalScore: sub.totalScore,
         maxScore: sub.maxScore,
         createdAt: sub.createdAt,
-        answerScores: (sub.answers || []).map((a) => a.scoreGiven ?? null),
+        answerScores: (sub.answers || []).map((a) => ({
+          total: a.scoreGiven ?? null,
+          step1: a.step1Score ?? null,
+          step2: a.step2Score ?? null,
+          step3: a.step3Score ?? null,
+          step4: a.step4Score ?? null,
+        })),
       })
     }
 
