@@ -9,7 +9,7 @@ const stepSchema = new mongoose.Schema({
 const answerSchema = new mongoose.Schema({
   questionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Question', required: true },
   problemSnapshot: { type: String, required: true },
-  problemImageSnapshot: { type: String, default: '' },
+  problemImageSnapshots: [{ type: String }],
 
   step1: { type: stepSchema, default: () => ({}) },
   step2: { type: stepSchema, default: () => ({}) },

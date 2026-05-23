@@ -11,10 +11,10 @@ export async function getConfig(req, res) {
     }
 
     let config = await ExamConfig.findOne({ level })
-      .populate('prePostQuestionIds', 'problemText problemImageUrl level')
-      .populate('sessions.in_class_1.questionId', 'problemText problemImageUrl level')
-      .populate('sessions.in_class_2.questionId', 'problemText problemImageUrl level')
-      .populate('sessions.in_class_3.questionId', 'problemText problemImageUrl level')
+      .populate('prePostQuestionIds', 'problemText problemImageUrls level')
+      .populate('sessions.in_class_1.questionId', 'problemText problemImageUrls level')
+      .populate('sessions.in_class_2.questionId', 'problemText problemImageUrls level')
+      .populate('sessions.in_class_3.questionId', 'problemText problemImageUrls level')
     if (!config) {
       config = await ExamConfig.create({ level })
     }

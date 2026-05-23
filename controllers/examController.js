@@ -115,7 +115,7 @@ export async function startExam(req, res) {
       answers: questions.map((q) => ({
         questionId: q._id,
         problemSnapshot: q.problemText,
-        problemImageSnapshot: q.problemImageUrl || '',
+        problemImageSnapshots: q.problemImageUrls || [],
         step1: { inputType: 'text', text: '', imageUrl: '' },
         step2: { inputType: 'text', text: '', imageUrl: '' },
         step3: { inputType: 'text', text: '', imageUrl: '' },
@@ -131,7 +131,7 @@ export async function startExam(req, res) {
       questions: questions.map((q) => ({
         _id: q._id,
         problemText: q.problemText,
-        problemImageUrl: q.problemImageUrl,
+        problemImageUrls: q.problemImageUrls || [],
       })),
     })
   } catch (error) {

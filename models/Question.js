@@ -3,8 +3,9 @@ import mongoose from 'mongoose'
 const questionSchema = new mongoose.Schema({
   level: { type: String, enum: ['m1', 'm2', 'm3'], required: true },
   problemText: { type: String, required: true },
-  problemImageUrl: { type: String },
+  problemImageUrls: [{ type: String }],
   referenceSolution: { type: String },
+  referenceSolutionImageUrls: [{ type: String }],
   answer: { type: String },
   isActive: { type: Boolean, default: true },
   pool: { type: String, enum: ['pre_post', 'in_class', 'any'], default: 'any' },

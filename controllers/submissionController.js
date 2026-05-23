@@ -10,7 +10,21 @@ export async function getMySubmissions(req, res) {
       studentId: req.user.id,
       status: { $ne: 'draft' },
     }).sort({ createdAt: -1 })
-    res.json(submissions)
+
+    const HIDDEN_EXAM_TYPES = ['pre_test', 'post_test']
+
+    const result = submissions.map((sub) => {
+      const obj = sub.toObject()
+      if (HIDDEN_EXAM_TYPES.includes(obj.examType)) {
+        obj.answers = obj.answers.map((a) => ({
+          questionId: a.questionId,
+          scoreGiven: a.scoreGiven,
+        }))
+      }
+      return obj
+    })
+
+    res.json(result)
   } catch (error) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
   }
@@ -87,14 +101,21 @@ export async function getSubmission(req, res) {
 
     const result = submission.toObject()
     const questionIds = result.answers.map((a) => a.questionId)
-    const questions = await Question.find({ _id: { $in: questionIds } }).select('stepFeedbacks referenceSolution answer')
+    const questions = await Question.find({ _id: { $in: questionIds } }).select('stepFeedbacks referenceSolution referenceSolutionImageUrls answer problemImageUrls')
     const qMap = Object.fromEntries(questions.map((q) => [q._id.toString(), q]))
     result.answers = result.answers.map((a) => {
       const q = qMap[a.questionId.toString()] || {}
+
+      const problemImageSnapshots = a.problemImageSnapshots?.length
+        ? a.problemImageSnapshots
+        : q.problemImageUrls || []
+
       return {
         ...a,
+        problemImageSnapshots,
         stepFeedbacks: q.stepFeedbacks || {},
         referenceSolution: q.referenceSolution || '',
+        referenceSolutionImageUrls: q.referenceSolutionImageUrls || [],
         answer: q.answer || '',
       }
     })
