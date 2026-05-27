@@ -44,7 +44,7 @@ export async function getStudents(req, res) {
 
 export async function createStudent(req, res) {
   try {
-    const { studentId, password, name, level, classroom } = req.body
+    const { studentId, password, name, title, level, classroom } = req.body
     if (!studentId || !password || !name || !level) {
       return res.status(400).json({ message: 'กรุณากรอกข้อมูลให้ครบ' })
     }
@@ -52,8 +52,8 @@ export async function createStudent(req, res) {
     if (existing) {
       return res.status(409).json({ message: 'รหัสนักเรียนนี้มีอยู่แล้ว' })
     }
-    const student = await Student.create({ studentId, password, name, level, classroom: classroom ? Number(classroom) : null })
-    res.status(201).json({ _id: student._id, studentId: student.studentId, name: student.name, level: student.level, classroom: student.classroom })
+    const student = await Student.create({ studentId, password, title: title || '', name, level, classroom: classroom ? Number(classroom) : null })
+    res.status(201).json({ _id: student._id, studentId: student.studentId, title: student.title, name: student.name, level: student.level, classroom: student.classroom })
   } catch (error) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
   }
@@ -64,14 +64,15 @@ export async function updateStudent(req, res) {
     const student = await Student.findById(req.params.id)
     if (!student) return res.status(404).json({ message: 'ไม่พบนักเรียน' })
 
-    const { name, level, password, classroom } = req.body
+    const { name, title, level, password, classroom } = req.body
     if (name) student.name = name
+    if (title !== undefined) student.title = title
     if (level) student.level = level
     if (password) student.password = password
     if (classroom !== undefined) student.classroom = classroom ? Number(classroom) : null
     await student.save()
 
-    res.json({ _id: student._id, studentId: student.studentId, name: student.name, level: student.level, classroom: student.classroom })
+    res.json({ _id: student._id, studentId: student.studentId, title: student.title, name: student.name, level: student.level, classroom: student.classroom })
   } catch (error) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
   }

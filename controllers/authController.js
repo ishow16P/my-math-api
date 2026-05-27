@@ -47,6 +47,7 @@ export async function studentLogin(req, res) {
       refreshToken,
       student: {
         studentId: student.studentId,
+        title: student.title ?? '',
         name: student.name,
         level: student.level,
       },
@@ -153,12 +154,13 @@ export async function refreshTokenHandler(req, res) {
 
 export async function getStudentMe(req, res) {
   try {
-    const student = await Student.findById(req.user.id).select('studentId name level classroom')
+    const student = await Student.findById(req.user.id).select('studentId title name level classroom')
     if (!student) {
       return res.status(404).json({ message: 'ไม่พบข้อมูลนักเรียน' })
     }
     res.json({
       studentId: student.studentId,
+      title: student.title,
       name: student.name,
       level: student.level,
       classroom: student.classroom,

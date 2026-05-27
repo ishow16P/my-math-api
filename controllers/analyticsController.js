@@ -92,6 +92,7 @@ export async function getClassroomScores(req, res) {
     const result = students.map((s) => ({
       _id: s._id,
       studentId: s.studentId,
+      title: s.title,
       name: s.name,
       level: s.level,
       classroom: s.classroom,
@@ -141,7 +142,7 @@ export async function exportClassroomScores(req, res) {
     const numQuestions = submissions.reduce((max, sub) => Math.max(max, sub.answers?.length || 0), 0) || 3
 
     // สร้าง header: 1.1 1.2 1.3 1.4 ข้อ1 | 2.1 ... | รวม
-    const header = ['ลำดับ', 'รหัสนักเรียน', 'ชื่อ-นามสกุล', 'ระดับ', 'ห้อง']
+    const header = ['ลำดับ', 'รหัสนักเรียน', 'คำนำหน้า', 'ชื่อ-นามสกุล', 'ระดับ', 'ห้อง']
     for (let q = 1; q <= numQuestions; q++) {
       header.push(`${q}.1`, `${q}.2`, `${q}.3`, `${q}.4`, `${q}`)
     }
@@ -157,6 +158,7 @@ export async function exportClassroomScores(req, res) {
       const row = [
         i + 1,
         s.studentId,
+        s.title || '',
         s.name,
         levelMap[s.level] || s.level,
         s.classroom ? `${s.level.replace('m', '')}/${s.classroom}` : '-',

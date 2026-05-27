@@ -62,7 +62,7 @@ export async function getAllSubmissions(req, res) {
     // ไม่ส่ง page → return array (backward compat กับ dashboard)
     if (!page) {
       const submissions = await Submission.find(filter)
-        .populate('studentId', 'studentId name level classroom')
+        .populate('studentId', 'studentId title name level classroom')
         .populate('gradedBy', 'name email')
         .sort({ createdAt: -1 })
       return res.json(submissions)
@@ -72,7 +72,7 @@ export async function getAllSubmissions(req, res) {
     const [total, data] = await Promise.all([
       Submission.countDocuments(filter),
       Submission.find(filter)
-        .populate('studentId', 'studentId name level classroom')
+        .populate('studentId', 'studentId title name level classroom')
         .populate('gradedBy', 'name email')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -88,7 +88,7 @@ export async function getAllSubmissions(req, res) {
 export async function getSubmission(req, res) {
   try {
     const submission = await Submission.findById(req.params.id)
-      .populate('studentId', 'studentId name level classroom')
+      .populate('studentId', 'studentId title name level classroom')
       .populate('gradedBy', 'name email')
     if (!submission) return res.status(404).json({ message: 'ไม่พบข้อสอบ' })
 
