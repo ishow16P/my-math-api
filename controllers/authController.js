@@ -149,7 +149,66 @@ export async function refreshTokenHandler(req, res) {
   }
 }
 
+// ─── Profile ──────────────────────────────────────────────────────────────────
+
+export async function getStudentMe(req, res) {
+  try {
+    const student = await Student.findById(req.user.id).select('studentId name level classroom')
+    if (!student) {
+      return res.status(404).json({ message: 'ไม่พบข้อมูลนักเรียน' })
+    }
+    res.json({
+      studentId: student.studentId,
+      name: student.name,
+      level: student.level,
+      classroom: student.classroom,
+    })
+  } catch (error) {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
+  }
+}
+
 // ─── Logout ───────────────────────────────────────────────────────────────────
+
+export async function studentChangePassword(req, res) {
+  try {
+    const { currentPassword, newPassword } = req.body
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'กรุณากรอกรหัสผ่านปัจจุบันและรหัสผ่านใหม่' })
+    }
+    if (newPassword.length < 4) {
+      return res.status(400).json({ message: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร' })
+    }
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ message: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านปัจจุบัน' })
+    }
+
+    const student = await Student.findById(req.user.id)
+    if (!student) {
+      return res.status(404).json({ message: 'ไม่พบข้อมูลนักเรียน' })
+    }
+    if (!(await student.comparePassword(currentPassword))) {
+      return res.status(401).json({ message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' })
+    }
+
+    student.password = newPassword
+
+    const payload = { id: student._id, studentId: student.studentId, role: 'student' }
+    const newAccessToken = signAccessToken(payload)
+    const newRefreshToken = signRefreshToken(payload)
+    student.refreshTokenHash = hashToken(newRefreshToken)
+
+    await student.save()
+
+    res.json({
+      message: 'เปลี่ยนรหัสผ่านสำเร็จ',
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    })
+  } catch (error) {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: error.message })
+  }
+}
 
 export async function studentLogout(req, res) {
   try {
